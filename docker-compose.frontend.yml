@@ -6,13 +6,13 @@ x-anchors:
   x-kpi-anchor: &django
     image: kobotoolbox/kpi:2.026.03a
     init: true
-    env_file:
-      - ../env/envfiles/aws.txt
-      - ../env/envfiles/databases.txt
-      - ../env/envfiles/django.txt
-      - ../env/envfiles/external_services.txt
-      - ../env/envfiles/domains.txt
-      - ../env/envfiles/smtp.txt
+    env_file: .env
+    #  - ../env/envfiles/aws.txt
+    #  - ../env/envfiles/databases.txt
+    #  - ../env/envfiles/django.txt
+    #  - ../env/envfiles/external_services.txt
+    #  - ../env/envfiles/domains.txt
+    #  - ../env/envfiles/smtp.txt
     sysctls:
       - net.core.somaxconn=2048
     environment:
@@ -69,10 +69,10 @@ services:
   nginx:
     image: nginx:1.27
     hostname: nginx
-    env_file:
-      - ../env/envfiles/domains.txt
-      - ../env/envfiles/databases.txt
-      - ../env/envfiles/django.txt
+    env_file: .env
+    #  - ../env/envfiles/domains.txt
+    #  - ../env/envfiles/databases.txt
+    #  - ../env/envfiles/django.txt
     environment:
       - UWSGI_PASS_TIMEOUT=130
       - TEMPLATED_VAR_REFS=$${PUBLIC_REQUEST_SCHEME} $${INTERNAL_DOMAIN_NAME} $${PUBLIC_DOMAIN_NAME} $${KOBOFORM_PUBLIC_SUBDOMAIN} $${KOBOCAT_PUBLIC_SUBDOMAIN} $${ENKETO_EXPRESS_PUBLIC_SUBDOMAIN}
@@ -95,8 +95,8 @@ services:
     image: kobotoolbox/enketo-express-extra-widgets:7.6.0
     init: true
     hostname: enketo_express
-    env_file:
-      - ../env/envfiles/domains.txt
+    env_file: .env
+    #  - ../env/envfiles/domains.txt
     restart: unless-stopped
     volumes:
       - ../env/enketo_express/config.json:/srv/src/enketo/packages/enketo-express/config/config.json
