@@ -1,0 +1,191 @@
+# Unified KoboToolbox Docker Compose for Dokploy
+# Deploy this as a "Stack" in Dokploy from your Git repository.
+
+services:
+  #--------------------------------------------------------------------------------
+  # BACKEND SERVICES
+  #--------------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:14-3.2
+    hostname: postgres
+    env_file: .env.dokploy
+    volumes:
+      - kobo-db-data:/var/lib/postgresql/data
+      - ./backups/postgres:/srv/backups
+      - ./log/postgres:/srv/logs
+      - ./postgres:/kobo-docker-scripts
+    command: "bash /kobo-docker-scripts/entrypoint.sh"
+    restart: always
+    stop_grace_period: 5m
+    networks:
+      - dokploy-network
+
+  mongo:
+    image: mongo:5.0
+    hostname: mongo
+    environment:
+      - MONGO_DATA=/data/db
+    env_file: .env.dokploy
+    volumes:
+      - kobo-mongo-data:/data/db
+      - ./backups/mongo:/srv/backups
+      - ./mongo:/kobo-docker-scripts
+      - ./log/mongo:/srv/logs
+    restart: always
+    command: "bash /kobo-docker-scripts/entrypoint.sh"
+    stop_grace_period: 5m
+    networks:
+      - dokploy-network
+
+  redis_main:
+    image: redis:7.2
+    hostname: redis_main
+    env_file: .env.dokploy
+    environment:
+      - KOBO_REDIS_SERVER_ROLE=main
+    volumes:
+      - kobo-redis-main-data:/data/
+      - ./redis:/kobo-docker-scripts
+      - ./backups/redis:/srv/backups
+      - ./redis/redis-enketo-main.conf.tmpl:/etc/redis/redis.conf.tmpl:ro
+      - ./redis/entrypoint.sh:/tmp/redis/entrypoint.sh:ro
+      - ./log/redis_main:/var/log/redis
+    restart: always
+    stop_grace_period: 2m30s
+    sysctls:
+        - net.core.somaxconn=2048
+    command: "bash /tmp/redis/entrypoint.sh"
+    networks:
+      - dokploy-network
+
+  redis_cache:
+    image: redis:7.2
+    hostname: redis_cache
+    env_file: .env.dokploy
+    environment:
+      - KOBO_REDIS_SERVER_ROLE=cache
+    volumes:
+      - kobo-redis-cache-data:/data/
+      - ./redis/redis-enketo-cache.conf.tmpl:/etc/redis/redis.conf.tmpl:ro
+      - ./redis/entrypoint.sh:/tmp/redis/entrypoint.sh:ro
+      - ./log/redis_cache:/var/log/redis
+    restart: always
+    stop_grace_period: 2m30s
+    sysctls:
+        - net.core.somaxconn=2048
+    command: "bash /tmp/redis/entrypoint.sh"
+    networks:
+      - dokploy-network
+
+  #--------------------------------------------------------------------------------
+  # FRONTEND SERVICES
+  #--------------------------------------------------------------------------------
+  kpi:
+    image: kobotoolbox/kpi:2.026.03a
+    init: true
+    env_file: .env.dokploy
+    sysctls:
+      - net.core.somaxconn=2048
+    environment:
+      - UWSGI_MAX_REQUESTS=512
+      - UWSGI_WORKERS_COUNT=2
+    volumes:
+      - kobo-static-kpi:/srv/static
+      - ./log/kpi:/srv/logs
+      - ./scripts/wait_for_mongo.bash:/srv/init/wait_for_mongo.bash:ro
+      - ./scripts/wait_for_postgres.bash:/srv/init/wait_for_postgres.bash:ro
+      - kobo-kpi-media:/srv/src/kpi/media
+      - kobo-kobocat-media:/srv/src/kobocat/media
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+
+  # Celery Workers
+  worker:
+    image: kobotoolbox/kpi:2.026.03a
+    env_file: .env.dokploy
+    command: ['bash', '/srv/src/kpi/docker/entrypoint_celery_kpi_worker.bash']
+    networks:
+      - dokploy-network
+    depends_on:
+      - redis_main
+      - postgres
+
+  worker_low_priority:
+    image: kobotoolbox/kpi:2.026.03a
+    env_file: .env.dokploy
+    command: ['bash', '/srv/src/kpi/docker/entrypoint_celery_kpi_worker_low_priority.bash']
+    networks:
+      - dokploy-network
+    depends_on:
+      - redis_main
+
+  beat:
+    image: kobotoolbox/kpi:2.026.03a
+    env_file: .env.dokploy
+    command: ['bash', '/srv/src/kpi/docker/entrypoint_celery_beat.bash']
+    networks:
+      - dokploy-network
+    depends_on:
+      - redis_main
+
+  nginx:
+    image: nginx:1.27
+    hostname: nginx
+    env_file: .env.dokploy
+    environment:
+      - UWSGI_PASS_TIMEOUT=130
+    volumes:
+        - kobo-static-root:/srv/www:ro
+        - ./log/nginx:/var/log/nginx
+        - kobo-kobocat-media:/media
+        - kobo-kpi-media-public:/srv/kpi_media/__public:ro
+        - ./nginx/docker-entrypoint.d/30-init-kobo-nginx.sh:/docker-entrypoint.d/30-init-kobo-nginx.sh
+        - ./nginx/kobo-docker-scripts/:/kobo-docker-scripts
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+
+  enketo_express:
+    image: kobotoolbox/enketo-express-extra-widgets:7.6.0
+    init: true
+    hostname: enketo_express
+    env_file: .env.dokploy
+    restart: unless-stopped
+    volumes:
+      - ./env/enketo_express/config.json:/srv/src/enketo/packages/enketo-express/config/config.json
+    networks:
+      - dokploy-network
+
+  #--------------------------------------------------------------------------------
+  # MAINTENANCE SERVICE
+  #--------------------------------------------------------------------------------
+  maintenance:
+    image: nginx:1.27
+    hostname: maintenance
+    env_file: .env.dokploy
+    volumes:
+        - ./log/nginx:/var/log/nginx
+        - ./nginx/docker-entrypoint.d/30-init-maintenance-nginx.sh:/docker-entrypoint.d/30-init-kobo-nginx.sh
+        - ./nginx/kobo-docker-scripts:/kobo-docker-scripts
+        - ./nginx/maintenance:/www
+    restart: on-failure
+    networks:
+      - dokploy-network
+    profiles:
+      - maintenance # Only starts if specifically requested
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  kobo-db-data:
+  kobo-mongo-data:
+  kobo-redis-main-data:
+  kobo-redis-cache-data:
+  kobo-static-kpi:
+  kobo-static-root:
+  kobo-kpi-media:
+  kobo-kpi-media-public:
+  kobo-kobocat-media:

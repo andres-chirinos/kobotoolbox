@@ -44,9 +44,9 @@ If you do not use kobo-install, please replace `python3 run.py -cb` with `docker
     +    image: postgis/postgis:9.5-2.5
          hostname: postgres
          env_file:
-           - ../kobo-env/envfile.txt
+           - ../env/envfile.txt
     @@ -13,6 +14,7 @@ services:
-           - ../kobo-env/envfiles/aws.txt
+           - ../env/envfiles/aws.txt
          volumes:
            - ./.vols/db:/var/lib/postgresql/data
     +      - ./.vols/db14:/var/lib/postgresql/data14
@@ -60,9 +60,9 @@ If you do not use kobo-install, please replace `python3 run.py -cb` with `docker
     image: postgis/postgis:9.5-2.5
     hostname: postgres
     env_file:
-      - ../kobo-env/envfile.txt
-      - ../kobo-env/envfiles/databases.txt
-      - ../kobo-env/envfiles/aws.txt
+      - ../env/envfile.txt
+      - ../env/envfiles/databases.txt
+      - ../env/envfiles/aws.txt
     volumes:
       - ./.vols/db:/var/lib/postgresql/data
       - ./.vols/db14:/var/lib/postgresql/data14
@@ -418,9 +418,9 @@ Please note that MongoDB [recommends using an XFS partition](https://www.mongodb
               - MONGO_DATA=/data/db
               - KEY_FILE_SECRET=<base64-characters-only>
             env_file:
-              - /home/ubuntu/kobo-env/envfile.txt
-              - /home/ubuntu/kobo-env/envfiles/databases.txt
-              - /home/ubuntu/kobo-env/envfiles/aws.txt
+              - /home/ubuntu/env/envfile.txt
+              - /home/ubuntu/env/envfiles/databases.txt
+              - /home/ubuntu/env/envfiles/aws.txt
             volumes:
               - /mnt/mongo:/data/db
               - ./kobo:/kobo

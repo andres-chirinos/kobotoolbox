@@ -1,6 +1,6 @@
 # Environment variables
 
-**All files within `./env` folder should be copied to `../kobo-env`.** 
+**All files within `./env` folder should be copied to `../env`.** 
 They are only templates and must be modified to fit your needs.
 
 
