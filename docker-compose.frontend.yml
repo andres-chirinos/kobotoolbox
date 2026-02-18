@@ -1,4 +1,4 @@
-# NOTE: Generate `../kobo-env/` environment files using
+# NOTE: Generate `../env/` environment files using
 # https://github.com/kobotoolbox/kobo-install. You may manually customize the
 # files afterwards and stop using kobo-install if necessary.
 
@@ -7,12 +7,12 @@ x-anchors:
     image: kobotoolbox/kpi:2.026.03a
     init: true
     env_file:
-      - ../kobo-env/envfiles/aws.txt
-      - ../kobo-env/envfiles/databases.txt
-      - ../kobo-env/envfiles/django.txt
-      - ../kobo-env/envfiles/external_services.txt
-      - ../kobo-env/envfiles/domains.txt
-      - ../kobo-env/envfiles/smtp.txt
+      - ../env/envfiles/aws.txt
+      - ../env/envfiles/databases.txt
+      - ../env/envfiles/django.txt
+      - ../env/envfiles/external_services.txt
+      - ../env/envfiles/domains.txt
+      - ../env/envfiles/smtp.txt
     sysctls:
       - net.core.somaxconn=2048
     environment:
@@ -70,9 +70,9 @@ services:
     image: nginx:1.27
     hostname: nginx
     env_file:
-      - ../kobo-env/envfiles/domains.txt
-      - ../kobo-env/envfiles/databases.txt
-      - ../kobo-env/envfiles/django.txt
+      - ../env/envfiles/domains.txt
+      - ../env/envfiles/databases.txt
+      - ../env/envfiles/django.txt
     environment:
       - UWSGI_PASS_TIMEOUT=130
       - TEMPLATED_VAR_REFS=$${PUBLIC_REQUEST_SCHEME} $${INTERNAL_DOMAIN_NAME} $${PUBLIC_DOMAIN_NAME} $${KOBOFORM_PUBLIC_SUBDOMAIN} $${KOBOCAT_PUBLIC_SUBDOMAIN} $${ENKETO_EXPRESS_PUBLIC_SUBDOMAIN}
@@ -89,22 +89,26 @@ services:
         aliases:
           - nginx.internal
           - nginx.docker.container
+      dokploy-network:
 
   enketo_express:
     image: kobotoolbox/enketo-express-extra-widgets:7.6.0
     init: true
     hostname: enketo_express
     env_file:
-      - ../kobo-env/envfiles/domains.txt
+      - ../env/envfiles/domains.txt
     restart: unless-stopped
     volumes:
-      - ../kobo-env/enketo_express/config.json:/srv/src/enketo/packages/enketo-express/config/config.json
+      - ../env/enketo_express/config.json:/srv/src/enketo/packages/enketo-express/config/config.json
     networks:
       kobo-fe-network:
         aliases:
           - enketo_express.internal
           - enketo_express.docker.container
+      dokploy-network:
 
 networks:
   kobo-fe-network:
     driver: bridge
+  dokploy-network:
+    external: true

@@ -14,7 +14,7 @@ rm -rf /etc/nginx/conf.d/*
 
 echo "Creating includes"
 mkdir -p ${INCLUDES_DIR}
-cat ${KOBO_DOCKER_SCRIPTS_DIR}/templates/include.https_redirection.conf.tmpl | envsubst "${TEMPLATED_VAR_REFS}" > /etc/nginx/includes/https_redirection.conf
+# cat ${KOBO_DOCKER_SCRIPTS_DIR}/templates/include.https_redirection.conf.tmpl | envsubst "${TEMPLATED_VAR_REFS}" > /etc/nginx/includes/https_redirection.conf
 
 # Do environment variable substitutions and activate the resulting config. file.
 echo "Creating default config"
